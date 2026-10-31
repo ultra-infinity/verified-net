@@ -1,0 +1,9 @@
+[package]
+name = "udp"
+description = "UDP (RFC 768), no_std, formally verified against a hand-written spec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

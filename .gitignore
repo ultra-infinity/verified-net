@@ -1,0 +1,5 @@
+# Build outputs, anywhere in the tree.
+target/
+.lake/
+result
+result-*
