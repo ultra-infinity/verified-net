@@ -18,23 +18,39 @@ namespace Udp
      +--------+--------+--------+--------+
 -/
 
+/--Helper theorem for bit extraction  -/
+theorem extractLsb'_append (x : BitVec 16) :
+    x.extractLsb' 8 8 ++ x.extractLsb' 0 8 = x := by
+  ext i hi
+  rw[BitVec.getElem_append]
+  split
+  next hlt =>
+    rw[BitVec.getElem_extractLsb', Nat.zero_add, BitVec.getLsbD_eq_getElem]
+  next hge =>
+    have add_8: 8 + (i - 8) = i := by
+      omega
+    rw[BitVec.getElem_extractLsb', add_8 ,BitVec.getLsbD_eq_getElem]
+
+theorem octet_concat( a b : Octet): a ++ b = BitVec.append a b := by
+  grind
+
 /-- The header is four 16-bit fields: 8 octets. -/
 theorem UdpHeader.toOctets_length (h : UdpHeader) :
     h.toOctets.length = headerLength := by
-  sorry
+  rfl
 
 /-- Each field has its own place in the header: the header is read back
 from its octets, whatever follows them. -/
 theorem UdpHeader.ofOctets?_toOctets (h : UdpHeader) (rest : List Octet) :
     UdpHeader.ofOctets? (h.toOctets ++ rest) = some h := by
-  sorry
+  unfold UdpHeader.ofOctets? toOctets toOctets16
+  simp only [List.cons_append, List.nil_append, extractLsb'_append]
 
 /-- The header is the first 8 octets, so there is one whenever there are
 8 octets. -/
 theorem UdpHeader.ofOctets?_isSome {os : List Octet} :
     (UdpHeader.ofOctets? os).isSome ↔ headerLength ≤ os.length := by
   sorry
-
 /-! ## Length
 
 "Length is the length in octets of this user datagram including this
@@ -45,7 +61,9 @@ eight.)"
 /-- "The minimum value of the length is eight." -/
 theorem Datagram.LengthValid.headerLength_le {d : Datagram} (h : d.LengthValid) :
     headerLength ≤ d.header.length.toNat := by
-  sorry
+  unfold Datagram.LengthValid at h
+  rw[h]
+  omega
 
 /-- Length is a 16-bit field, so the data are at most 2¹⁶ − 1 − 8 octets. -/
 theorem Datagram.LengthValid.data_length_le {d : Datagram} (h : d.LengthValid) :
@@ -56,12 +74,22 @@ theorem Datagram.LengthValid.data_length_le {d : Datagram} (h : d.LengthValid) :
 the data." -/
 theorem Datagram.LengthValid.toOctets_length {d : Datagram} (h : d.LengthValid) :
     d.toOctets.length = d.header.length.toNat := by
-  sorry
+  unfold Datagram.LengthValid at h
+  rw[h]
+  unfold Datagram.toOctets UdpHeader.toOctets toOctets16 headerLength
+  simp
+  omega
 
 /-- A datagram whose Length is its length is read back from its octets. -/
 theorem Datagram.ofOctets?_toOctets {d : Datagram} (h : d.LengthValid) :
     Datagram.ofOctets? d.toOctets = some d := by
-  sorry
+  unfold Datagram.ofOctets? Datagram.toOctets
+  rw[UdpHeader.ofOctets?_toOctets]
+  simp
+  constructor
+  . exact h
+  . rw[List.drop_left' (UdpHeader.toOctets_length d.header) ]
+
 
 /-- Octets read as a datagram are that datagram's octets, and its Length is
 its length. -/
