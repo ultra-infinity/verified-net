@@ -68,8 +68,10 @@ theorem Datagram.LengthValid.headerLength_le {d : Datagram} (h : d.LengthValid) 
 /-- Length is a 16-bit field, so the data are at most 2¹⁶ − 1 − 8 octets. -/
 theorem Datagram.LengthValid.data_length_le {d : Datagram} (h : d.LengthValid) :
     d.data.length ≤ 2 ^ 16 - 1 - headerLength := by
-  sorry
-
+  unfold Datagram.LengthValid headerLength at h
+  unfold headerLength
+  have hlt := BitVec.isLt d.header.length
+  omega
 /-- "The length in octets of this user datagram including this header and
 the data." -/
 theorem Datagram.LengthValid.toOctets_length {d : Datagram} (h : d.LengthValid) :
