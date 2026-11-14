@@ -52,6 +52,23 @@ theorem UdpHeader.ofOctets?_isSome {os : List Octet} :
     (UdpHeader.ofOctets? os).isSome ↔ headerLength ≤ os.length := by
   unfold UdpHeader.ofOctets?
   split
+  next hlt =>
+    simp
+    unfold headerLength
+    grind
+  next hlr =>
+  simp at hlr
+  unfold headerLength
+  match os, hlr with
+    | s₁ :: s₀ :: d₁ :: d₀ :: l₁ :: l₀ :: c₁ :: c₀ :: tail, hlr => exact absurd rfl (hlr s₁ s₀ d₁ d₀ l₁ l₀ c₁ c₀ tail)
+    | [], _
+    | [_], _
+    | [_, _], _
+    | [_, _, _], _
+    | [_, _, _, _], _
+    | [_, _, _, _, _], _
+    | [_, _, _, _, _, _], _
+    | [_, _, _, _, _, _, _], _ => simp
 /-! ## Length
 
 "Length is the length in octets of this user datagram including this
@@ -73,6 +90,7 @@ theorem Datagram.LengthValid.data_length_le {d : Datagram} (h : d.LengthValid) :
   unfold headerLength
   have hlt := BitVec.isLt d.header.length
   omega
+
 /-- "The length in octets of this user datagram including this header and
 the data." -/
 theorem Datagram.LengthValid.toOctets_length {d : Datagram} (h : d.LengthValid) :
@@ -99,7 +117,18 @@ its length. -/
 theorem Datagram.ofOctets?_eq_some {os : List Octet} {d : Datagram}
     (h : Datagram.ofOctets? os = some d) :
     d.LengthValid ∧ d.toOctets = os := by
-  sorry
+    unfold Datagram.ofOctets? at h
+    cases hh : UdpHeader.ofOctets? os with
+      | none  =>
+        simp [hh] at h
+
+      | some a  =>
+        simp[hh] at h
+        obtain ⟨hlen, rfl ⟩ := h
+        
+        sorry
+
+
 
 /-! ## Checksum
 
@@ -148,8 +177,13 @@ theorem checksumValid_zero (p : PseudoHeader) (d : Datagram) :
 right only if it is the one computed. -/
 theorem checksumValid_iff {p : PseudoHeader} {d : Datagram} (h : d.header.checksum ≠ 0) :
     ChecksumValid p d ↔ d.header.checksum = transmittedChecksum p d := by
-  sorry
-
+    unfold ChecksumValid transmittedChecksum
+    simp
+    split
+    next hlt =>
+      grind
+    next hlr =>
+      grind
 /-! ## Sending
 
 A sender sets Length to the length of the datagram, and the checksum to the
@@ -162,19 +196,33 @@ theorem Datagram.build_fields (p : PseudoHeader) (sourcePort destinationPort : B
     let d := Datagram.build p sourcePort destinationPort data
     d.header.sourcePort = sourcePort ∧ d.header.destinationPort = destinationPort ∧
       d.data = data := by
-  sorry
+    unfold UdpHeader.destinationPort
+    sorry
 
 /-- When the data fit the 16-bit Length, the datagram built is valid. -/
 theorem Datagram.build_valid (p : PseudoHeader) (sourcePort destinationPort : BitVec 16)
     {data : List Octet} (h : data.length ≤ 2 ^ 16 - 1 - headerLength) :
     (Datagram.build p sourcePort destinationPort data).Valid p := by
-  sorry
+    unfold Datagram.Valid Datagram.LengthValid headerLength ChecksumValid
+    unfold headerLength at h
+    simp at h
+    constructor
+    . unfold build Datagram.withChecksum headerLength
+      simp
+      omega
+    . right
+      unfold build transmittedChecksum
+      rw[checksum_withChecksum]
+      unfold headerLength
+      dsimp
+      rfl
 
 /-- When the data fit, the datagram built is read back from its octets. -/
 theorem Datagram.ofOctets?_build (p : PseudoHeader) (sourcePort destinationPort : BitVec 16)
     {data : List Octet} (h : data.length ≤ 2 ^ 16 - 1 - headerLength) :
     let d := Datagram.build p sourcePort destinationPort data
     Datagram.ofOctets? d.toOctets = some d := by
-  sorry
-
+    intro d
+    apply Datagram.ofOctets?_toOctets
+    exact (Datagram.build_valid p sourcePort destinationPort h).left
 end Udp
