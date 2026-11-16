@@ -121,11 +121,9 @@ theorem Datagram.ofOctets?_eq_some {os : List Octet} {d : Datagram}
     cases hh : UdpHeader.ofOctets? os with
       | none  =>
         simp [hh] at h
-
       | some a  =>
         simp[hh] at h
         obtain ⟨hlen, rfl ⟩ := h
-        
         sorry
 
 
